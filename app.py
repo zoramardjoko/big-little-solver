@@ -12,17 +12,39 @@ st.markdown("""
 This app helps you solve different variants of the Big-Little matching problem. Choose the type of matching problem and provide your data to find optimal matches.
 """)
 
+# Dictionary containing descriptions for each problem type
+problem_descriptions = {
+    "Classic Stable Matching (SMP)": """
+    The standard problem where each participant ranks all potential matches in strict order of preference. 
+    The goal is to find a stable matching where no two participants would prefer each other over their assigned matches.
+    """,
+    
+    "Stable Matching with Ties (SMT)": """
+    Extends SMP by allowing ties in preference lists, where a participant may rank multiple others equally. 
+    This makes the problem NP-hard.
+    """,
+    
+    "Stable Matching with Ties and Incomplete Lists (SMTI)": """
+    Further extends SMT by allowing participants to leave some potential matches unranked, 
+    meaning they would rather be unmatched than paired with these individuals.
+    """,
+    
+    "Optimized Matching (with Preference Weights)": """
+    Instead of focusing solely on stability, this approach maximizes overall satisfaction based on preference rankings. 
+    It allows for specifying how much weight to give to big preferences versus little preferences.
+    """
+}
+
 # Sidebar for selecting the matching problem type
 st.sidebar.header("Choose Matching Problem")
 problem_type = st.sidebar.selectbox(
     "Select the type of matching problem:",
-    [
-        "Classic Stable Matching (SMP)",
-        "Stable Matching with Ties (SMT)",
-        "Stable Matching with Ties and Incomplete Lists (SMTI)",
-        "Optimized Matching (with Preference Weights)"
-    ]
+    list(problem_descriptions.keys())
 )
+
+# Display the description for the selected problem type
+st.sidebar.markdown("### About this matching problem")
+st.sidebar.markdown(problem_descriptions[problem_type])
 
 # Function to display graphviz objects
 def render_graphviz(graph):
@@ -242,11 +264,11 @@ if st.button("Solve Matching Problem"):
                 # Check for instabilities and display them
                 instabilities = matcher.check_instabilities(matches)
                 if instabilities:
-                    st.warning(f"Found {len(instabilities)} blocking pairs (instabilities):")
+                    st.warning(f"Found {len(instabilities)} instabilities:")
                     for b, l in instabilities:
                         st.write(f"- ({b}, {l})")
                 else:
-                    st.success("No blocking pairs found - the matching is stable!")
+                    st.success("No instabilities found - the matching is stable!")
                 
                 # Display all matches in a table
                 st.subheader("Matches")
@@ -274,22 +296,6 @@ if st.button("Solve Matching Problem"):
                 
             except Exception as e:
                 st.error(f"Error solving the model: {str(e)}")
-
-# Add explanation for the different matching problems
-with st.expander("About the different matching problem types"):
-    st.markdown("""
-    ### Classic Stable Matching (SMP)
-    The standard problem where each participant ranks all potential matches in strict order of preference. The goal is to find a stable matching where no two participants would prefer each other over their assigned matches.
-    
-    ### Stable Matching with Ties (SMT)
-    Extends SMP by allowing ties in preference lists, where a participant may rank multiple others equally. This makes the problem NP-hard.
-    
-    ### Stable Matching with Ties and Incomplete Lists (SMTI)
-    Further extends SMT by allowing participants to leave some potential matches unranked, meaning they would rather be unmatched than paired with these individuals.
-    
-    ### Optimized Matching (with Preference Weights)
-    Instead of focusing solely on stability, this approach maximizes overall satisfaction based on preference rankings. It allows for specifying how much weight to give to big preferences versus little preferences.
-    """)
 
 # Add footer
 st.markdown("---")
