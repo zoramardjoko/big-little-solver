@@ -4,6 +4,7 @@ import graphviz
 from collections import defaultdict
 import json
 import base64
+from galeshapely import GaleShapley
 
 st.set_page_config(page_title="Big-Little Matcher", layout="wide")
 
@@ -32,6 +33,11 @@ problem_descriptions = {
     "Optimized Matching (with Preference Weights)": """
     Instead of focusing solely on stability, this approach maximizes overall satisfaction based on preference rankings. 
     It allows for specifying how much weight to give to big preferences versus little preferences.
+    """,
+    
+    "Gale-Shapley Algorithm": """
+    The original algorithm for solving the stable matching problem. It guarantees a stable matching
+    in O(n²) time, where n is the number of participants. This algorithm favors the proposing side.
     """
 }
 
@@ -41,6 +47,18 @@ problem_type = st.sidebar.selectbox(
     "Select the type of matching problem:",
     list(problem_descriptions.keys())
 )
+
+# Initialize session state for storing matches and littles as proposers
+if 'gs_matches' not in st.session_state:
+    st.session_state.gs_matches = None
+if 'show_littles_as_proposers' not in st.session_state:
+    st.session_state.show_littles_as_proposers = False
+if 'littles_proposer_clicked' not in st.session_state:
+    st.session_state.littles_proposer_clicked = False
+if 'big_prefs' not in st.session_state:
+    st.session_state.big_prefs = None
+if 'little_prefs' not in st.session_state:
+    st.session_state.little_prefs = None
 
 # Display the description for the selected problem type
 st.sidebar.markdown("### About this matching problem")
@@ -99,6 +117,23 @@ def get_example_data(problem_type):
             "Kevin": {"Ishaan": 1, "Cindy": 1}  # Kevin doesn't rank Thomas
         }
         return bigs, littles, big_prefs, little_prefs
+    
+    elif problem_type == "Gale-Shapley Algorithm":
+        # For Gale-Shapley, we only need preference lists, not bigs/littles dictionaries
+        proposer_prefs = {
+            "Ishaan": ["Swapneel", "Zora", "Kevin"], 
+            "Cindy": ["Kevin", "Swapneel", "Zora"], 
+            "Thomas": ["Zora", "Kevin", "Swapneel"]
+        }
+        receiver_prefs = {
+            "Swapneel": ["Thomas", "Ishaan", "Cindy"], 
+            "Zora": ["Cindy", "Thomas", "Ishaan"], 
+            "Kevin": ["Ishaan", "Cindy", "Thomas"]
+        }
+        # Return empty dictionaries for bigs/littles to maintain interface
+        empty_bigs = {"Ishaan": {}, "Cindy": {}, "Thomas": {}}
+        empty_littles = {"Swapneel": {}, "Zora": {}, "Kevin": {}}
+        return empty_bigs, empty_littles, proposer_prefs, receiver_prefs
     
     else:  # Optimized Matching
         bigs = {"Ishaan": {"max": 1}, "Cindy": {"max": 2}, "Thomas": {"max": 1}}
@@ -211,10 +246,145 @@ if st.button("Solve Matching Problem"):
                 problem_type, bigs_text, littles_text, big_prefs_text, little_prefs_text
             )
             
-        if not all([bigs, littles, big_prefs, little_prefs]):
+        if problem_type == "Gale-Shapley Algorithm":
+            # For Gale-Shapley we only need preference lists
+            if not all([big_prefs, little_prefs]):
+                st.error("Invalid input data. Please check your JSON format for preference lists.")
+            else:
+                # Prepare data for Gale-Shapley
+                # For Gale-Shapley, we need simple preference lists
+                if input_method == "Enter Custom Data":
+                    # Convert preferences to lists if they're not already
+                    if isinstance(list(big_prefs.values())[0], dict):
+                        # Convert from dict to list format
+                        big_prefs_lists = {}
+                        for big, prefs in big_prefs.items():
+                            # Sort by preference value (lower is better)
+                            big_prefs_lists[big] = [p for p, _ in sorted(prefs.items(), key=lambda x: x[1])]
+                        big_prefs = big_prefs_lists
+                        
+                        little_prefs_lists = {}
+                        for little, prefs in little_prefs.items():
+                            # Sort by preference value (lower is better)
+                            little_prefs_lists[little] = [p for p, _ in sorted(prefs.items(), key=lambda x: x[1])]
+                        little_prefs = little_prefs_lists
+                
+                try:
+                    # Create GaleShapley instance with bigs as proposers
+                    gs = GaleShapley(big_prefs, little_prefs)
+                    matches = gs.match()
+                    
+                    # Store matches and preferences in session state
+                    st.session_state.gs_matches = matches
+                    st.session_state.big_prefs = big_prefs
+                    st.session_state.little_prefs = little_prefs
+                    st.session_state.show_littles_as_proposers = True
+                    
+                    # Display results
+                    st.header("Gale-Shapley Results")
+                    
+                    # Create tabs for the two different approaches
+                    tab1, tab2 = st.tabs(["Bigs as Proposers", "Littles as Proposers"])
+                    
+                    with tab1:
+                        st.markdown("### Bigs as Proposers (optimize bigs' preferences)")
+                        
+                        # Create a graphviz object for visualization
+                        graph = graphviz.Graph()
+                        COLORS = ['aqua', 'coral', 'darkgreen', 'gold', 'darkolivegreen1',
+                                'deeppink', 'crimson', 'darkorchid', 'bisque', 'yellow']
+                        
+                        # Add edges and nodes to the graph
+                        for big, little in matches:
+                            graph.edge(f'{big}', f'{little}', penwidth="1")
+                            graph.node(f'{big}', color=COLORS[hash(big) % len(COLORS)])
+                            graph.node(f'{little}', color=COLORS[hash(little) % len(COLORS)])
+                        
+                        # Display the graph
+                        st.subheader("Matching Visualization")
+                        render_graphviz(graph)
+                        
+                        # Display all matches in a table
+                        st.subheader("Matches")
+                        match_data = []
+                        for big, little in matches:
+                            match_data.append({"Big": big, "Little": little})
+                        
+                        st.table(match_data)
+                    
+                    with tab2:
+                        st.markdown("### Littles as Proposers (optimize littles' preferences)")
+                        
+                        # Create GaleShapley with littles as proposers
+                        gs_alt = GaleShapley(little_prefs, big_prefs)
+                        matches_alt = gs_alt.match()
+                        
+                        # Invert the matches to maintain big->little format
+                        matches_alt = [(little, big) for big, little in matches_alt]
+                        
+                        # Create a graphviz object for visualization
+                        graph_alt = graphviz.Graph()
+                        
+                        # Add edges and nodes to the graph
+                        for big, little in matches_alt:
+                            graph_alt.edge(f'{big}', f'{little}', penwidth="1")
+                            graph_alt.node(f'{big}', color=COLORS[hash(big) % len(COLORS)])
+                            graph_alt.node(f'{little}', color=COLORS[hash(little) % len(COLORS)])
+                        
+                        # Display the graph
+                        st.subheader("Matching Visualization")
+                        render_graphviz(graph_alt)
+                        
+                        # Display all matches in a table
+                        st.subheader("Matches")
+                        match_data_alt = []
+                        for big, little in matches_alt:
+                            match_data_alt.append({"Big": big, "Little": little})
+                        
+                        st.table(match_data_alt)
+                    
+                    # Compare the two results
+                    st.subheader("Comparison")
+                    different = set(matches) != set(matches_alt)
+                    if different:
+                        st.warning("The two solutions are different! This shows how the Gale-Shapley algorithm favors the proposing side.")
+                    else:
+                        st.success("Both approaches produce the same matching!")
+                    
+                    # Provide download option for the results
+                    st.subheader("Download Results")
+                    col1, col2 = st.columns(2)
+                    
+                    def to_json_file(matches, proposers):
+                        result = {
+                            "matches": [{"big": b, "little": l} for b, l in matches],
+                            "problem_type": "Gale-Shapley Algorithm",
+                            "proposers": proposers
+                        }
+                        return json.dumps(result, indent=2)
+                    
+                    with col1:
+                        st.download_button(
+                            label="Download Bigs as Proposers Results",
+                            data=to_json_file(matches, "bigs"),
+                            file_name="gale_shapley_bigs_proposers.json",
+                            mime="application/json"
+                        )
+                    
+                    with col2:
+                        st.download_button(
+                            label="Download Littles as Proposers Results",
+                            data=to_json_file(matches_alt, "littles"),
+                            file_name="gale_shapley_littles_proposers.json",
+                            mime="application/json"
+                        )
+                    
+                except Exception as e:
+                    st.error(f"Error solving with Gale-Shapley: {str(e)}")
+        elif not all([bigs, littles, big_prefs, little_prefs]):
             st.error("Invalid input data. Please check your JSON format.")
         else:
-            # Create the matcher
+            # Create the matcher for other algorithms
             matcher = BigLittleMatcher(bigs, littles, big_prefs, little_prefs)
             
             # Build the appropriate model based on the problem type
