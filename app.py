@@ -15,6 +15,11 @@ This app helps you solve different variants of the Big-Little matching problem. 
 
 # Dictionary containing descriptions for each problem type
 problem_descriptions = {
+    "Gale-Shapley Algorithm": """
+    The original algorithm for solving the stable matching problem. It guarantees a stable matching
+    in O(n²) time, where n is the number of participants. This algorithm favors the proposing side.
+    """,
+
     "Classic Stable Matching (SMP)": """
     The standard problem where each participant ranks all potential matches in strict order of preference. 
     The goal is to find a stable matching where no two participants would prefer each other over their assigned matches.
@@ -33,11 +38,6 @@ problem_descriptions = {
     "Optimized Matching (with Preference Weights)": """
     Instead of focusing solely on stability, this approach maximizes overall satisfaction based on preference rankings. 
     It allows for specifying how much weight to give to big preferences versus little preferences.
-    """,
-    
-    "Gale-Shapley Algorithm": """
-    The original algorithm for solving the stable matching problem. It guarantees a stable matching
-    in O(n²) time, where n is the number of participants. This algorithm favors the proposing side.
     """
 }
 
