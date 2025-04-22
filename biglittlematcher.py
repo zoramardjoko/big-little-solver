@@ -3,6 +3,8 @@ import graphviz
 from collections import defaultdict
 from IPython.display import display
 from typing import List, Dict
+import time
+
 
 class BigLittleMatcher:
     def __init__(self, bigs: Dict, littles: Dict, big_prefs: Dict, little_prefs: Dict):
@@ -18,11 +20,13 @@ class BigLittleMatcher:
         self.solver = cp_model.CpSolver()
 
     def solve(self):
+        start_time = time.time()
         status = self.solver.Solve(self.model)
         if status != cp_model.OPTIMAL:
             raise ValueError('Not possible!')
         matches = [(b, l) for (b, l), var in self.x.items() if self.solver.Value(var)]
-        return matches, self.solver.ObjectiveValue()
+        end_time = time.time()
+        return matches, self.solver.ObjectiveValue(), end_time - start_time
 
     def pretty_print(self):
         print(self.solver.ResponseStats())
