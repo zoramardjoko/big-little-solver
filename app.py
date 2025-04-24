@@ -35,6 +35,11 @@ problem_descriptions = {
     It assumes that the missing preferences are the worst possible matches.
     """,
     
+    "SMTI with Optional Matching": """
+    Similar to SMTI, but prefers to leave people unmatched rather than matching them with people they didn't rank.
+    This is useful when it's better to have no match than a poor match.
+    """,
+    
     "Optimized Matching (with Preference Weights)": """
     Instead of focusing solely on stability, this approach maximizes overall satisfaction based on preference rankings. 
     It allows for specifying how much weight to give to big preferences versus little preferences.
@@ -72,8 +77,6 @@ def render_graphviz(graph):
 # Function to create example data based on problem type
 def get_example_data(problem_type):
     if problem_type == "Classic Stable Matching (SMP)":
-        # bigs = {"Ishaan": {}, "Cindy": {}, "Thomas": {}}
-        # littles = {"Swapneel": {}, "Zora": {}, "Kevin": {}}
         bigs = ["Ishaan", "Cindy", "Thomas"]
         littles = ["Swapneel", "Zora", "Kevin"]
         big_prefs = {
@@ -89,8 +92,6 @@ def get_example_data(problem_type):
         return bigs, littles, big_prefs, little_prefs
         
     elif problem_type == "Stable Matching with Ties (SMT)":
-        # bigs = {"Ishaan": {}, "Cindy": {}, "Thomas": {}}
-        # littles = {"Swapneel": {}, "Zora": {}, "Kevin": {}}
         bigs = ["Ishaan", "Cindy", "Thomas"]
         littles = ["Swapneel", "Zora", "Kevin"]
         # In SMT, lower rank = higher preference, and equal ranks = ties
@@ -106,9 +107,7 @@ def get_example_data(problem_type):
         }
         return bigs, littles, big_prefs, little_prefs
         
-    elif problem_type == "Stable Matching with Ties and Incomplete Lists (SMTI)":
-        # bigs = {"Ishaan": {}, "Cindy": {}, "Thomas": {}}
-        # littles = {"Swapneel": {}, "Zora": {}, "Kevin": {}}
+    elif problem_type in ["Stable Matching with Ties and Incomplete Lists (SMTI)", "SMTI with Optional Matching"]:
         bigs = ["Ishaan", "Cindy", "Thomas"]
         littles = ["Swapneel", "Zora", "Kevin"]
         # In SMTI, some preferences might be missing
@@ -402,6 +401,8 @@ if st.button("Solve Matching Problem"):
                 matcher.build_model_smt()
             elif problem_type == "Stable Matching with Ties and Incomplete Lists (SMTI)":
                 matcher.build_model_smti()
+            elif problem_type == "SMTI with Optional Matching":
+                matcher.build_model_smi_two()
             else:  # Optimized Matching
                 matcher.build_model_optimize(
                     preference_weight=preference_weight,

@@ -176,6 +176,67 @@ class BigLittleMatcher:
                 self.x[(b, l)] = self.model.NewBoolVar(f"x_{b}_{l}")
         
         for b in self.bigs:
+            self.model.Add(sum(self.x[(b, l)] for l in self.littles) == 1)
+        for l in self.littles:
+            self.model.Add(sum(self.x[(b, l)] for b in self.bigs) == 1)
+        
+        for b in self.bigs:
+            for l in self.littles:
+                b_rank_of_l = self.big_prefs.get(b, {}).get(l, self.max_rank_b)
+                l_rank_of_b = self.little_prefs.get(l, {}).get(b, self.max_rank_l)
+                
+                if b_rank_of_l == self.max_rank_b or l_rank_of_b == self.max_rank_l:
+                    continue
+                    
+                not_matched = self.model.NewBoolVar(f"not_matched_{b}_{l}")
+                self.model.Add(self.x[(b, l)] == 0).OnlyEnforceIf(not_matched)
+                self.model.Add(self.x[(b, l)] == 1).OnlyEnforceIf(not_matched.Not())
+                
+                b_with_better_or_equal = self.model.NewBoolVar(f"b{b}_with_geq_{l}")
+                preferred_littles = [
+                    l_prime for l_prime in self.littles 
+                    if self.big_prefs.get(b, {}).get(l_prime, self.max_rank_b) <= b_rank_of_l
+                ]
+                self.model.Add(sum(self.x[(b, l_prime)] for l_prime in preferred_littles) >= 1).OnlyEnforceIf(b_with_better_or_equal)
+                self.model.Add(sum(self.x[(b, l_prime)] for l_prime in preferred_littles) == 0).OnlyEnforceIf(b_with_better_or_equal.Not())
+                
+                l_with_better_or_equal = self.model.NewBoolVar(f"l{l}_with_geq_{b}")
+                preferred_bigs = [
+                    b_prime for b_prime in self.bigs 
+                    if self.little_prefs.get(l, {}).get(b_prime, self.max_rank_l) <= l_rank_of_b
+                ]
+                self.model.Add(sum(self.x[(b_prime, l)] for b_prime in preferred_bigs) >= 1).OnlyEnforceIf(l_with_better_or_equal)
+                self.model.Add(sum(self.x[(b_prime, l)] for b_prime in preferred_bigs) == 0).OnlyEnforceIf(l_with_better_or_equal.Not())
+                
+                self.model.AddBoolOr([not_matched.Not(), b_with_better_or_equal, l_with_better_or_equal])
+        
+        self.model.Maximize(0)
+
+    def build_model_smi_two(self):
+        """
+        Build a Stable Marriage model with Ties and Incomplete lists (SMTI).
+        
+        For preferences, instead of lists, we use:
+        - big_prefs[b][l] = rank of little l for big b (lower is better)
+        - little_prefs[l][b] = rank of big b for little l (lower is better)
+        - Missing entries indicate unranked participants
+        - We would rather leave people unmatched than match them to someone they did not rank.
+        
+        This function:
+        1. Creates binary variables for all possible matches
+        2. Adds constraints to ensure each participant is matched at most once
+        3. Only considers stability for pairs where both participants rank each other
+        4. Adds stability constraints with ties:
+           - For each potential pair (b,l) that's not matched, either:
+             a) b must be matched with someone they rank equally or better than l, or
+             b) l must be matched with someone they rank equally or better than b
+        """
+        for b in self.bigs:
+            for l in self.littles:
+                self.x[(b, l)] = self.model.NewBoolVar(f"x_{b}_{l}")
+        
+        # we check make it <= 1, so now not everyone has to be matched.
+        for b in self.bigs:
             self.model.Add(sum(self.x[(b, l)] for l in self.littles) <= 1)
         for l in self.littles:
             self.model.Add(sum(self.x[(b, l)] for b in self.bigs) <= 1)
@@ -210,7 +271,25 @@ class BigLittleMatcher:
                 
                 self.model.AddBoolOr([not_matched.Not(), b_with_better_or_equal, l_with_better_or_equal])
         
-        self.model.Maximize(0)
+        # we want to minimize the sum of the ranks.
+        # Create a dictionary to store the ranks of matched pairs
+        temp_scores = {}
+        for b in self.bigs:
+            for l in self.littles:
+                # Only consider pairs that are ranked by both participants
+                b_rank_of_l = self.big_prefs.get(b, {}).get(l, self.max_rank_b * 1000)
+                l_rank_of_b = self.little_prefs.get(l, {}).get(b, self.max_rank_l * 1000)
+                
+                if b_rank_of_l >= self.max_rank_b * 1000 or l_rank_of_b >= self.max_rank_l * 1000:
+                    # Heavily penalize matching unranked participants
+                    temp_scores[(b, l)] = -(b_rank_of_l + l_rank_of_b)
+                else:
+                    # For ranked pairs, we want to maximize the negative sum of ranks
+                    # (which is equivalent to minimizing the sum of ranks)
+                    temp_scores[(b, l)] = -(b_rank_of_l + l_rank_of_b)
+        
+        # Maximize the negative sum of ranks (equivalent to minimizing the sum of ranks)
+        self.model.Maximize(sum(temp_scores[(b, l)] * self.x[(b, l)] for (b, l) in self.x))
 
     def build_model_optimize(self, preference_weight: float = 0.5, enforce_exactly_one: bool = False):
         #x[(b, l)] is 1 if big b is matched with little l
