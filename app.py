@@ -72,8 +72,10 @@ def render_graphviz(graph):
 # Function to create example data based on problem type
 def get_example_data(problem_type):
     if problem_type == "Classic Stable Matching (SMP)":
-        bigs = {"Ishaan": {}, "Cindy": {}, "Thomas": {}}
-        littles = {"Swapneel": {}, "Zora": {}, "Kevin": {}}
+        # bigs = {"Ishaan": {}, "Cindy": {}, "Thomas": {}}
+        # littles = {"Swapneel": {}, "Zora": {}, "Kevin": {}}
+        bigs = ["Ishaan", "Cindy", "Thomas"]
+        littles = ["Swapneel", "Zora", "Kevin"]
         big_prefs = {
             "Ishaan": ["Swapneel", "Zora", "Kevin"], 
             "Cindy": ["Kevin", "Swapneel", "Zora"], 
@@ -87,8 +89,10 @@ def get_example_data(problem_type):
         return bigs, littles, big_prefs, little_prefs
         
     elif problem_type == "Stable Matching with Ties (SMT)":
-        bigs = {"Ishaan": {}, "Cindy": {}, "Thomas": {}}
-        littles = {"Swapneel": {}, "Zora": {}, "Kevin": {}}
+        # bigs = {"Ishaan": {}, "Cindy": {}, "Thomas": {}}
+        # littles = {"Swapneel": {}, "Zora": {}, "Kevin": {}}
+        bigs = ["Ishaan", "Cindy", "Thomas"]
+        littles = ["Swapneel", "Zora", "Kevin"]
         # In SMT, lower rank = higher preference, and equal ranks = ties
         big_prefs = {
             "Ishaan": {"Swapneel": 1, "Kevin": 2, "Zora": 1},  # Tie between Swapneel and Zora
@@ -103,8 +107,10 @@ def get_example_data(problem_type):
         return bigs, littles, big_prefs, little_prefs
         
     elif problem_type == "Stable Matching with Ties and Incomplete Lists (SMTI)":
-        bigs = {"Ishaan": {}, "Cindy": {}, "Thomas": {}}
-        littles = {"Swapneel": {}, "Zora": {}, "Kevin": {}}
+        # bigs = {"Ishaan": {}, "Cindy": {}, "Thomas": {}}
+        # littles = {"Swapneel": {}, "Zora": {}, "Kevin": {}}
+        bigs = ["Ishaan", "Cindy", "Thomas"]
+        littles = ["Swapneel", "Zora", "Kevin"]
         # In SMTI, some preferences might be missing
         big_prefs = {
             "Ishaan": {"Swapneel": 1, "Zora": 1},  # Ishaan doesn't rank Kevin
@@ -114,7 +120,7 @@ def get_example_data(problem_type):
         little_prefs = {
             "Swapneel": {"Ishaan": 2, "Thomas": 1},  # Swapneel doesn't rank Cindy
             "Zora": {"Ishaan": 3, "Cindy": 1, "Thomas": 2},
-            "Kevin": {"Ishaan": 1, "Cindy": 1}  # Kevin doesn't rank Thomas
+            "Kevin": {"Ishaan": 1}  # Kevin doesn't rank Thomas
         }
         return bigs, littles, big_prefs, little_prefs
     
@@ -131,9 +137,11 @@ def get_example_data(problem_type):
             "Kevin": ["Ishaan", "Cindy", "Thomas"]
         }
         # Return empty dictionaries for bigs/littles to maintain interface
-        empty_bigs = {"Ishaan": {}, "Cindy": {}, "Thomas": {}}
-        empty_littles = {"Swapneel": {}, "Zora": {}, "Kevin": {}}
-        return empty_bigs, empty_littles, proposer_prefs, receiver_prefs
+        # empty_bigs = {"Ishaan": {}, "Cindy": {}, "Thomas": {}}
+        # empty_littles = {"Swapneel": {}, "Zora": {}, "Kevin": {}}
+        bigs = ["Ishaan", "Cindy", "Thomas"]
+        littles = ["Swapneel", "Zora", "Kevin"]
+        return bigs, littles, proposer_prefs, receiver_prefs
     
     else:  # Optimized Matching
         bigs = {"Ishaan": {"max": 1}, "Cindy": {"max": 2}, "Thomas": {"max": 1}}
