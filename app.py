@@ -26,13 +26,13 @@ problem_descriptions = {
     """,
     
     "Stable Matching with Ties (SMT)": """
-    Extends SMP by allowing ties in preference lists, where a participant may rank multiple others equally. 
-    This makes the problem NP-hard.
+    Extends SMP by allowing ties in preference lists, where a participant may rank multiple others equally.
+    This might be suitable for cases where people are indifferent between multiple matches.
     """,
     
     "Stable Matching with Ties and Incomplete Lists (SMTI)": """
-    Further extends SMT by allowing participants to leave some potential matches unranked, 
-    meaning they would rather be unmatched than paired with these individuals.
+    Further extends SMT by allowing participants to leave some preferences blank.
+    It assumes that the missing preferences are the worst possible matches.
     """,
     
     "Optimized Matching (with Preference Weights)": """
@@ -402,7 +402,7 @@ if st.button("Solve Matching Problem"):
             
             try:
                 # Solve the model
-                matches, objective_value = matcher.solve()
+                matches, objective_value, solve_time = matcher.solve()
                 
                 # Display results
                 st.header("Matching Results")
@@ -430,6 +430,8 @@ if st.button("Solve Matching Problem"):
                 
                 if problem_type == "Optimized Matching (with Preference Weights)":
                     st.write(f"Total preference score: {objective_value:.2f}")
+                
+                st.write(f"Solve time: {solve_time:.4f} seconds")
                 
                 # Check for instabilities and display them
                 instabilities = matcher.check_instabilities(matches)
@@ -469,4 +471,4 @@ if st.button("Solve Matching Problem"):
 
 # Add footer
 st.markdown("---")
-st.markdown("Built with Streamlit • [GitHub](https://github.com/kevinhehe/big-little-solver)") 
+st.markdown("Built with Streamlit by [Zora Mardjoko](https://github.com/zoramardjoko) and [Kevin He](https://github.com/Haokius)") 
