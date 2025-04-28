@@ -2,6 +2,8 @@
 
 A tool for solving various types of Big-Little matching problems typically used in fraternity/sorority pairing.
 
+# Try it out: https://big-little-solver.streamlit.app/
+
 ## Features
 
 - Solves multiple variants of matching problems:
